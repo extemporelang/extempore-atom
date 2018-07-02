@@ -7,7 +7,7 @@
   "activationCommands": {
     "atom-workspace": "extempore-atom:Connect"
   },
-  "repository": "https://github.com/***REMOVED***/extempore-atom",
+  "repository": "https://github.com/negaex/extempore-atom",
   "license": "MIT",
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
