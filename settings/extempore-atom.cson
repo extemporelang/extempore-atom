@@ -1,3 +1,11 @@
 '.source.extempore':
+  'bracket-matcher':
+    autocompleteCharacters: [
+      '()'
+      '[]'
+      '||'
+      '""'      
+    ]
+    'pairsWithExtraNewline': []
   'editor':
     'commentStart': ';'
