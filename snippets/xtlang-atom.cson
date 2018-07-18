@@ -127,8 +127,8 @@
   "sampler-setup":
     prefix: "dsamp "
     body: '''
-      (load "libs/external/instruments.xtm")
-      (load "/Users/ben/Code/xtm/lib/sampler-maps.xtm")
+      (sys:load "libs/external/instruments_ext.xtm")
+      (sys:load "libs/contrib/sampler-maps.xtm")
 
       (define-sampler ${1:sampler-name} sampler_note_hermite_c sampler_fx)
 
@@ -158,7 +158,7 @@
   dsp:
     prefix: "dsp "
     body: '''
-      (bind-func dsp:[float,float,i64,i64,float*]*
+      (bind-func dsp:DSP
         (lambda (in time chan dat)
           $0))
 
@@ -170,40 +170,36 @@
   "gl-loop":
     prefix: "glloop "
     body: '''
-      (sys:load "libs/xtm.xtm")
-      (sys:load "libs/external/shaders.xtm")
+      (sys:load "libs/external/glfw3.xtm")
 
-      (define width ${1:`(display-pixel-width)`.0})
-      (define height ${2:`(display-pixel-height)`.0})
-      (bind-val width float $1)
-      (bind-val height float $2)
-      (define fullscreen ${3:#t})
+      (bind-val width i32 ${1:1024})
+      (bind-val height i32 ${2:768})
 
-      (define *gl-ctx* (gl:make-ctx ":0.0" fullscreen 0.0 0.0 width height))
-      (xtm_render_setup (real->integer width) (real->integer height))
+      (bind-val window GLFWwindow*
+        (begin
+          (glfwSetErrorCallback (convert (get_native_fptr glfw_error_callback)))
+          (glfw_init_and_create_interaction_window width height)))
 
-      (bind-func post:XTMRENDERCB
-        (lambda (frame shader m v p data)
-          $0
-          void))
+      (sys:load "libs/external/gl/gl-objects.xtm")
+
+      (bind-val vbo VBO*)
+      (bind-val vao VAO*)
+      (bind-val sp ShaderProgram)
 
       (bind-func gl_render
         (lambda ()
-          ;;          pre  opaq trans post data
-          (xtm_render null null null  post null)
-          void))
+          $0))
 
-      (define gl-loop
-        (lambda (time delta-t$9)
+      (bind-func gl_draw_loop
+        (lambda (time:i64 delta_t:double)
           (gl_render)
-          (gl:swap-buffers *gl-ctx*)
-          (callback (+ time (* *second* delta-t) 0.9)
-      	      'gl-loop
-      	      (+ time (* *second* delta-t))
-      	      delta-t$9)))
+          (glfwPollEvents)
+          (glfwSwapBuffers window)
+          (let ((next_time (+ time (convert (* 44100. delta_t)))))
+            (callback next_time gl_draw_loop next_time delta_t))))
 
-      (gl-loop (now) ${10:1/30})
-    '''
+      (gl_draw_loop (now) (/ 1.0 ${3:30.0}))
+      '''
   "header-primary":
     prefix: "headerp "
     body: "(sys:load \"`default-directory`setup.xtm\")"
@@ -229,9 +225,9 @@
   "if-mod":
     prefix: "im "
     body: "(if (${1:=} (modulo ${2:beat} ${3:1}) ${4:0}) $0)"
-"if-mod-duration":
-  prefix: "imd "
-  body: "(if (${1:=} (modulo (+ ${2:beat} dur) ${3:1}) ${4:0}) ${5:whenTrue} ${6:whenFalse})"
+  "if-mod-duration":
+    prefix: "imd "
+    body: "(if (${1:=} (modulo (+ ${2:beat} dur) ${3:1}) ${4:0}) ${5:whenTrue} ${6:whenFalse})"
   "if-not-null":
     prefix: "inn "
     body: "(if (not (null? $1))$0)"
@@ -344,7 +340,7 @@
       (bind-val height float height)
       (define fullscreen ${3:#t})
 
-      (sys:load "/Users/ben/Code/xtm/lib/vg-setup.xtm")
+      (sys:load "libs/contrib/openvg.xtm")
 
       (ipc:xtm-render-setup "utility")
 
@@ -465,16 +461,16 @@
       (ipc:connect "${1:server-ip}" "${2:server-name}" ${3:server-port})
       (clock:update-metro "$2" "${4:client-name}")
     '''
-"temporal-recursion":
-  prefix: "tr "
-  body: '''
-    (define ${1:fun-name}
-      (lambda (beat dur)
-        $0
-        (callback (*metro* (+ beat (* .5 dur))) '$1 (+ beat dur) dur)))
+  "temporal-recursion":
+    prefix: "tr "
+    body: '''
+      (define ${1:fun-name}
+        (lambda (beat dur)
+          $0
+          (callback (*metro* (+ beat (* .5 dur))) '$1 (+ beat dur) dur)))
 
-    ($1 (*metro* 'get-beat ${2:4}) ${3:1/4})
-  '''
+      ($1 (*metro* 'get-beat ${2:4}) ${3:1/4})
+    '''
   "temporal-recursion-rotate":
     prefix: "trr "
     body: '''
@@ -487,35 +483,34 @@
 
       ($1 (*metro* 'get-beat ${2:4}) ${3:1/4} ${4:'(60)} ${5:-1})
     '''
-"temporal-recursion-rotate-velocity":
-  prefix: "trrv "
-  body: '''
-    (define ${1:fun-name}
-      (lambda (beat dur lst inc vel)
-        $0
-        (mplay ${7:device} (car lst) (cosr vel 10 1) dur ${8:0})
-        (callback (*metro* (+ beat (* .5 dur))) '$1 (+ beat dur) dur
-          (rotate lst inc)
-          inc
-          vel)))
+  "temporal-recursion-rotate-velocity":
+    prefix: "trrv "
+    body: '''
+      (define ${1:fun-name}
+        (lambda (beat dur lst inc vel)
+          $0
+          (mplay ${7:device} (car lst) (cosr vel 10 1) dur ${8:0})
+          (callback (*metro* (+ beat (* .5 dur))) '$1 (+ beat dur) dur
+            (rotate lst inc)
+            inc
+            vel)))
 
-    ($1 (*metro* 'get-beat ${2:4}) ${3:1/4} ${4:'(60)} ${5:-1} ${6:20})
+      ($1 (*metro* 'get-beat ${2:4}) ${3:1/4} ${4:'(60)} ${5:-1} ${6:20})
+      '''
+  "temporal-recursion-metro-with-note-attributes":
+    prefix: "trmn "
+    body: '''
+      (define ${1:fun-name}
+        (lambda (metro beat pitch vel dur ch)
+          $0
+          (callback (metro (+ beat (* .5 dur))) '$1 metro (+ beat dur)
+            pitch
+            vel
+            dur
+            ch)))
+
+      ($1 ${2:metro} (${2:metro} 'get-beat ${3:4}) ${4:60} ${5:80} ${6:1/4} ${7:0})
     '''
-"temporal-recursion-metro-with-note-attributes":
-  prefix: "trmn "
-  body: '''
-    (define ${1:fun-name}
-      (lambda (metro beat pitch vel dur ch)
-        $0
-        (callback (metro (+ beat (* .5 dur))) '$1 metro (+ beat dur)
-          pitch
-          vel
-          dur
-          ch)))
-
-    ($1 ${2:metro} (${2:metro} 'get-beat ${3:4}) ${4:60} ${5:80} ${6:1/4} ${7:0})
-  '''
-
   "temporal-recursion-note-attributes":
     prefix: "trn "
     body: '''
