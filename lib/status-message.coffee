@@ -2,8 +2,6 @@
 #
 # Copyright (c) 2014 by Lifted Studios. All Rights Reserved.
 #
-# Modified by ***REMOVED***
-#
 
 # Public: Displays a message in the status bar.
 module.exports =

@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/***REMOVED***/extempore-atom/master/assets/xtm-atom.png" width="350px" alt="Extempore-Atom">
+# <img src="https://raw.githubusercontent.com/noiach/extempore-atom/master/assets/xtm-atom.png" width="350px" alt="Extempore-Atom">
 
 An Atom package for
 [Extempore](https://github.com/digego/extempore), providing syntax highlighting, snippets and commands for working with Extempore.
@@ -30,4 +30,4 @@ shortcut keys (listed above).
 
 # Preview
 
-![Extempore-Atom preview](https://raw.githubusercontent.com/***REMOVED***/extempore-atom/master/assets/xtm-atom-eg.gif)
+![Extempore-Atom preview](https://raw.githubusercontent.com/noiach/extempore-atom/master/assets/xtm-atom-eg.gif)
